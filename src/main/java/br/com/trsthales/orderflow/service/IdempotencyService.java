@@ -34,11 +34,11 @@ public class IdempotencyService {
 
         String currentValue = redisTemplate.opsForValue().get(redisKey);
         if (currentValue == null || IN_PROGRESS.equals(currentValue)) {
-            log.warn("Concurrent request detected for idempotency key: {}", key);
-            throw new IdempotencyConflictException("Request with this Idempotency-Key is already being processed");
+            log.warn("Idempotency-Key {} still in progress", key);
+            throw new IdempotencyConflictException("Request with this Idempotency-Key is still in progress");
         }
 
-        log.info("Idempotency hit for key: {}, returning existing order: {}", key, currentValue);
+        log.info("Idempotency-Key {} already used, order {}", key, currentValue);
         return Optional.of(UUID.fromString(currentValue));
     }
 

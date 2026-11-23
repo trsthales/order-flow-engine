@@ -1,10 +1,9 @@
 package br.com.trsthales.orderflow.domain;
 
+import br.com.trsthales.orderflow.AbstractIntegrationTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -12,10 +11,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles("test")
-@SpringBootTest
 @Transactional
-class OrderRepositoryTest {
+class OrderRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private OrderRepository orderRepository;

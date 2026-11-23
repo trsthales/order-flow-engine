@@ -1,15 +1,14 @@
 package br.com.trsthales.orderflow.api;
 
+import br.com.trsthales.orderflow.AbstractIntegrationTest;
 import br.com.trsthales.orderflow.domain.OrderRepository;
 import br.com.trsthales.orderflow.messaging.OrderEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,10 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest
 @AutoConfigureMockMvc
-class OrderControllerTest {
+class OrderControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

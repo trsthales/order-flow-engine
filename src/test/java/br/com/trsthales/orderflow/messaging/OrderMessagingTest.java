@@ -1,5 +1,6 @@
 package br.com.trsthales.orderflow.messaging;
 
+import br.com.trsthales.orderflow.AbstractIntegrationTest;
 import br.com.trsthales.orderflow.api.dto.CreateOrderItemRequest;
 import br.com.trsthales.orderflow.api.dto.CreateOrderRequest;
 import br.com.trsthales.orderflow.domain.Order;
@@ -9,8 +10,6 @@ import br.com.trsthales.orderflow.service.OrderProcessorService;
 import br.com.trsthales.orderflow.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigDecimal;
@@ -24,9 +23,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@ActiveProfiles("test")
-@SpringBootTest
-class OrderMessagingTest {
+class OrderMessagingTest extends AbstractIntegrationTest {
 
     @Autowired
     private OrderService orderService;
