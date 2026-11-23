@@ -10,3 +10,23 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    consumer:
+      group-id: order-flow-processor
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "br.com.trsthales.orderflow.messaging"
+
+app:
+  kafka:
+    topics:
+      orders-created: orders.created
+    retry:
+      interval-ms: 1000
+      max-attempts: 2

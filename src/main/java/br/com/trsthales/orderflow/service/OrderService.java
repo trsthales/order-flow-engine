@@ -4,6 +4,8 @@ import br.com.trsthales.orderflow.api.dto.CreateOrderRequest;
 import br.com.trsthales.orderflow.api.dto.OrderResponse;
 import br.com.trsthales.orderflow.domain.Order;
 import br.com.trsthales.orderflow.domain.OrderRepository;
+import br.com.trsthales.orderflow.messaging.OrderCreatedEvent;
+import br.com.trsthales.orderflow.messaging.OrderEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,10 +21,14 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final IdempotencyService idempotencyService;
+    private final OrderEventPublisher eventPublisher;
 
-    public OrderService(OrderRepository orderRepository, IdempotencyService idempotencyService) {
+    public OrderService(OrderRepository orderRepository,
+                        IdempotencyService idempotencyService,
+                        OrderEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.idempotencyService = idempotencyService;
+        this.eventPublisher = eventPublisher;
     }
 
     public OrderCreationResult createOrder(String idempotencyKey, CreateOrderRequest request) {
@@ -39,6 +45,12 @@ public class OrderService {
 
             Order saved = orderRepository.save(order);
             idempotencyService.markCompleted(idempotencyKey, saved.getId());
+            eventPublisher.publish(new OrderCreatedEvent(
+                    saved.getId(),
+                    saved.getCustomerId(),
+                    saved.getTotalAmount(),
+                    saved.getCreatedAt()
+            ));
             log.info("Order created with id: {} for customer: {}", saved.getId(), saved.getCustomerId());
 
             return new OrderCreationResult(OrderResponse.from(saved), false);
