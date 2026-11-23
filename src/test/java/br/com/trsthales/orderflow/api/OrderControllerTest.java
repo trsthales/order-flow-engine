@@ -1,6 +1,7 @@
 package br.com.trsthales.orderflow.api;
 
 import br.com.trsthales.orderflow.domain.OrderRepository;
+import br.com.trsthales.orderflow.messaging.OrderEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -20,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
 class OrderControllerTest {
@@ -33,6 +37,9 @@ class OrderControllerTest {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @MockitoBean
+    private OrderEventPublisher eventPublisher;
+
     @BeforeEach
     void setUp() {
         orderRepository.deleteAll();
@@ -40,7 +47,7 @@ class OrderControllerTest {
 
     @Test
     void shouldCreateOrderAndReplayResponseForSameIdempotencyKey() throws Exception {
-        String idempotencyKey = UUID.randomUUID().toString();
+        String key = UUID.randomUUID().toString();
         UUID customerId = UUID.randomUUID();
         UUID productId = UUID.randomUUID();
 
@@ -57,8 +64,8 @@ class OrderControllerTest {
                 }
                 """.formatted(customerId, productId);
 
-        MvcResult firstCall = mockMvc.perform(post("/api/v1/orders")
-                        .header("Idempotency-Key", idempotencyKey)
+        MvcResult created = mockMvc.perform(post("/api/v1/orders")
+                        .header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
@@ -67,18 +74,18 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andReturn();
 
-        MvcResult secondCall = mockMvc.perform(post("/api/v1/orders")
-                        .header("Idempotency-Key", idempotencyKey)
+        MvcResult replayed = mockMvc.perform(post("/api/v1/orders")
+                        .header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        assertThat(secondCall.getResponse().getContentAsString())
-                .isEqualTo(firstCall.getResponse().getContentAsString());
+        assertThat(replayed.getResponse().getContentAsString())
+                .isEqualTo(created.getResponse().getContentAsString());
         assertThat(orderRepository.count()).isEqualTo(1);
 
-        String location = firstCall.getResponse().getHeader("Location");
+        String location = created.getResponse().getHeader("Location");
         mockMvc.perform(get(location))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customerId").value(customerId.toString()))
@@ -87,8 +94,8 @@ class OrderControllerTest {
 
     @Test
     void shouldReturnConflictWhenIdempotencyKeyIsInProgress() throws Exception {
-        String idempotencyKey = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set("idempotency:orders:" + idempotencyKey, "IN_PROGRESS");
+        String key = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("idempotency:orders:" + key, "IN_PROGRESS");
 
         String payload = """
                 {
@@ -100,7 +107,7 @@ class OrderControllerTest {
                 """.formatted(UUID.randomUUID(), UUID.randomUUID());
 
         mockMvc.perform(post("/api/v1/orders")
-                        .header("Idempotency-Key", idempotencyKey)
+                        .header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isConflict());

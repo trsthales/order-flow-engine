@@ -1,0 +1,10 @@
+spring:
+  docker:
+    compose:
+      skip:
+        in-tests: false
+
+app:
+  kafka:
+    retry:
+      interval-ms: 100
