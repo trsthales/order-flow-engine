@@ -8,6 +8,7 @@ import br.com.trsthales.orderflow.messaging.OrderCreatedEvent;
 import br.com.trsthales.orderflow.messaging.OrderEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +32,10 @@ public class OrderService {
         this.eventPublisher = eventPublisher;
     }
 
-    public OrderCreationResult createOrder(String idempotencyKey, CreateOrderRequest request) {
+    public CreatedOrder createOrder(String idempotencyKey, CreateOrderRequest request) {
         Optional<UUID> existingOrderId = idempotencyService.tryAcquire(idempotencyKey);
         if (existingOrderId.isPresent()) {
-            return new OrderCreationResult(findById(existingOrderId.get()), true);
+            return new CreatedOrder(findById(existingOrderId.get()), true);
         }
 
         try {
@@ -53,13 +54,14 @@ public class OrderService {
             ));
             log.info("Order created with id: {} for customer: {}", saved.getId(), saved.getCustomerId());
 
-            return new OrderCreationResult(OrderResponse.from(saved), false);
+            return new CreatedOrder(OrderResponse.from(saved), false);
         } catch (RuntimeException ex) {
             idempotencyService.release(idempotencyKey);
             throw ex;
         }
     }
 
+    @Cacheable(cacheNames = "orders", key = "#id")
     @Transactional(readOnly = true)
     public OrderResponse findById(UUID id) {
         Order order = orderRepository.findByIdWithItems(id)
@@ -67,6 +69,6 @@ public class OrderService {
         return OrderResponse.from(order);
     }
 
-    public record OrderCreationResult(OrderResponse order, boolean replayed) {
+    public record CreatedOrder(OrderResponse order, boolean replayed) {
     }
 }

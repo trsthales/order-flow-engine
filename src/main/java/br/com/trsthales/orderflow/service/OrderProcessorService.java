@@ -5,6 +5,7 @@ import br.com.trsthales.orderflow.domain.OrderRepository;
 import br.com.trsthales.orderflow.domain.OrderStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +16,7 @@ import java.util.UUID;
 public class OrderProcessorService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderProcessorService.class);
-    private static final BigDecimal MAX_AUTO_APPROVAL_AMOUNT = new BigDecimal("10000.00");
+    private static final BigDecimal AUTO_APPROVAL_LIMIT = new BigDecimal("10000.00");
 
     private final OrderRepository orderRepository;
 
@@ -23,6 +24,7 @@ public class OrderProcessorService {
         this.orderRepository = orderRepository;
     }
 
+    @CacheEvict(cacheNames = "orders", key = "#orderId")
     @Transactional
     public void process(UUID orderId) {
         Order order = orderRepository.findById(orderId)
@@ -35,7 +37,7 @@ public class OrderProcessorService {
 
         order.markAsProcessing();
 
-        if (order.getTotalAmount().compareTo(MAX_AUTO_APPROVAL_AMOUNT) > 0) {
+        if (order.getTotalAmount().compareTo(AUTO_APPROVAL_LIMIT) > 0) {
             order.reject();
             log.info("Order {} rejected (amount {} exceeds limit)", orderId, order.getTotalAmount());
         } else {
@@ -44,6 +46,7 @@ public class OrderProcessorService {
         }
     }
 
+    @CacheEvict(cacheNames = "orders", key = "#orderId")
     @Transactional
     public void reject(UUID orderId) {
         orderRepository.findById(orderId).ifPresent(order -> {

@@ -3,7 +3,7 @@ package br.com.trsthales.orderflow.api;
 import br.com.trsthales.orderflow.api.dto.CreateOrderRequest;
 import br.com.trsthales.orderflow.api.dto.OrderResponse;
 import br.com.trsthales.orderflow.service.OrderService;
-import br.com.trsthales.orderflow.service.OrderService.OrderCreationResult;
+import br.com.trsthales.orderflow.service.OrderService.CreatedOrder;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +36,7 @@ public class OrderController {
             @RequestHeader("Idempotency-Key") @NotBlank String idempotencyKey,
             @RequestBody @Valid CreateOrderRequest request) {
 
-        OrderCreationResult result = orderService.createOrder(idempotencyKey, request);
+        CreatedOrder result = orderService.createOrder(idempotencyKey, request);
         if (result.replayed()) {
             return ResponseEntity.ok(result.order());
         }
